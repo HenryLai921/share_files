@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}檔案管理系統{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            850: '#1f2937',
+                            950: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .file-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .file-card:hover {
+            transform: translateY(-1px);
+        }
+        .upload-zone {
+            border: 2px dashed #4b5563;
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <!-- Navigation -->
+    {% if session.user_id %}
+    <nav class="bg-gray-900 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-cloud-upload-alt text-blue-400 text-2xl mr-3"></i>
+                    <span class="text-xl font-semibold">檔案管理</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-400">歡迎，{{ session.username }}</span>
+                    <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-home mr-2"></i>檔案列表
+                    </a>
+                    <a href="{{ url_for('upload') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-upload mr-2"></i>上傳檔案
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-sign-out-alt mr-2"></i>登出
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                {% for message in messages %}
+                    <div class="bg-blue-600 text-white p-4 rounded-lg mb-4 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="text-center text-gray-400 text-sm">
+                <i class="fas fa-shield-alt mr-2"></i>
+                個人檔案管理系統 - 安全 • 簡潔 • 高效
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 自動隱藏提示訊息
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.bg-blue-600, .bg-red-600, .bg-green-600');
+            alerts.forEach(alert => {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

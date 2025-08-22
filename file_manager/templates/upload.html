@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}上傳檔案 - 檔案管理系統{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-2xl font-bold text-white">上傳檔案</h1>
+        <p class="text-gray-400 mt-2">選擇檔案並上傳到您的個人儲存空間</p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-gray-900 rounded-lg border border-gray-800 p-8">
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            <!-- Drag & Drop Zone -->
+            <div class="upload-zone rounded-lg p-8 text-center mb-6" id="dropZone">
+                <div class="space-y-4">
+                    <div class="mx-auto h-16 w-16 bg-blue-600/20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-cloud-upload-alt text-blue-400 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-white mb-2">拖放檔案到此處</h3>
+                        <p class="text-gray-400 text-sm">或點擊下方按鈕選擇檔案</p>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <label class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg cursor-pointer transition-colors inline-flex items-center">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            選擇檔案
+                            <input type="file" name="file" id="fileInput" class="hidden" required>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Info Display -->
+            <div id="fileInfo" class="hidden bg-gray-800 rounded-lg p-4 mb-6">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <i id="fileIcon" class="fas fa-file text-gray-400 text-2xl"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="fileName" class="text-white font-medium truncate"></p>
+                        <p id="fileSize" class="text-gray-400 text-sm"></p>
+                    </div>
+                    <button type="button" onclick="clearFile()" class="text-red-400 hover:text-red-300 p-2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Button -->
+            <button type="submit"
+                    id="uploadBtn"
+                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+                <i class="fas fa-upload mr-2"></i>
+                <span id="uploadText">上傳檔案</span>
+            </button>
+        </form>
+
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="hidden mt-4">
+            <div class="bg-gray-800 rounded-full h-2">
+                <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p id="progressText" class="text-gray-400 text-sm mt-2 text-center">準備上傳...</p>
+        </div>
+    </div>
+
+    <!-- File Type Info -->
+    <div class="bg-gray-900 rounded-lg border border-gray-800 p-6">
+        <h3 class="text-lg font-medium text-white mb-4">
+            <i class="fas fa-info-circle mr-2"></i>
+            支援的檔案格式
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div class="space-y-2">
+                <div class="text-blue-400 font-medium">圖片</div>
+                <div class="text-gray-400">JPG, PNG, GIF</div>
+            </div>
+            <div class="space-y-2">
+                <div class="text-green-400 font-medium">文件</div>
+                <div class="text-gray-400">PDF, DOC, DOCX</div>
+            </div>
+            <div class="space-y-2">
+                <div class="text-yellow-400 font-medium">試算表</div>
+                <div class="text-gray-400">XLS, XLSX</div>
+            </div>
+            <div class="space-y-2">
+                <div class="text-purple-400 font-medium">壓縮檔</div>
+                <div class="text-gray-400">ZIP, RAR</div>
+            </div>
+        </div>
+        <div class="mt-4 p-4 bg-gray-800 rounded-lg">
+            <div class="flex items-center text-amber-400">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span class="font-medium">檔案大小限制：50MB</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const uploadForm = document.getElementById('uploadForm');
+const uploadBtn = document.getElementById('uploadBtn');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+
+// File type icons mapping
+const fileTypeIcons = {
+    'jpg': 'fas fa-image text-green-400',
+    'jpeg': 'fas fa-image text-green-400',
+    'png': 'fas fa-image text-green-400',
+    'gif': 'fas fa-image text-green-400',
+    'pdf': 'fas fa-file-pdf text-red-400',
+    'doc': 'fas fa-file-word text-blue-400',
+    'docx': 'fas fa-file-word text-blue-400',
+    'xls': 'fas fa-file-excel text-green-500',
+    'xlsx': 'fas fa-file-excel text-green-500',
+    'ppt': 'fas fa-file-powerpoint text-orange-400',
+    'pptx': 'fas fa-file-powerpoint text-orange-400',
+    'zip': 'fas fa-file-archive text-yellow-400',
+    'rar': 'fas fa-file-archive text-yellow-400',
+    'mp3': 'fas fa-file-audio text-purple-400',
+    'mp4': 'fas fa-file-video text-purple-400',
+    'avi': 'fas fa-file-video text-purple-400',
+    'txt': 'fas fa-file-alt text-gray-400'
+};
+
+// Drag and drop functionality
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelect(files[0]);
+    }
+});
+
+// File input change
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+    }
+});
+
+function handleFileSelect(file) {
+    const fileName = file.name;
+    const fileSize = formatFileSize(file.size);
+    const fileExt = fileName.split('.').pop().toLowerCase();
+
+    // Show file info
+    document.getElementById('fileName').textContent = fileName;
+    document.getElementById('fileSize').textContent = fileSize;
+
+    // Set appropriate icon
+    const iconClass = fileTypeIcons[fileExt] || 'fas fa-file text-gray-400';
+    document.getElementById('fileIcon').className = iconClass + ' text-2xl';
+
+    fileInfo.classList.remove('hidden');
+    uploadBtn.disabled = false;
+}
+
+function clearFile() {
+    fileInput.value = '';
+    fileInfo.classList.add('hidden');
+    uploadBtn.disabled = true;
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Form submission with progress
+uploadForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    if (!fileInput.files[0]) {
+        alert('請先選擇檔案');
+        return;
+    }
+
+    const formData = new FormData(uploadForm);
+
+    // Show progress
+    progressContainer.classList.remove('hidden');
+    uploadBtn.disabled = true;
+    document.getElementById('uploadText').textContent = '上傳中...';
+
+    // Simulate progress (since we can't get real progress in this simple setup)
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+
+        progressBar.style.width = progress + '%';
+        progressText.textContent = `上傳進度: ${Math.round(progress)}%`;
+    }, 200);
+
+    // Submit form
+    fetch(uploadForm.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressText.textContent = '上傳完成！';
+
+        setTimeout(() => {
+            if (response.ok) {
+                window.location.href = "{{ url_for('dashboard') }}";
+            } else {
+                alert('上傳失敗，請重試');
+                resetForm();
+            }
+        }, 1000);
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        alert('上傳發生錯誤：' + error.message);
+        resetForm();
+    });
+});
+
+function resetForm() {
+    uploadBtn.disabled = false;
+    document.getElementById('uploadText').textContent = '上傳檔案';
+    progressContainer.classList.add('hidden');
+    progressBar.style.width = '0%';
+}
+</script>
+{% endblock %}

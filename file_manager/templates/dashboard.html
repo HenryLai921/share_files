@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}檔案列表 - 檔案管理系統{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-white">我的檔案</h1>
+            <p class="text-gray-400">管理您的上傳檔案</p>
+        </div>
+        <a href="{{ url_for('upload') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            上傳新檔案
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-gray-900 rounded-lg p-6 border border-gray-800">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-600/20">
+                    <i class="fas fa-file text-blue-400 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-2xl font-bold text-white">{{ files|length }}</p>
+                    <p class="text-gray-400">總檔案數</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 rounded-lg p-6 border border-gray-800">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-600/20">
+                    <i class="fas fa-download text-green-400 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-2xl font-bold text-white">{{ files|sum(attribute='download_count') }}</p>
+                    <p class="text-gray-400">總下載次數</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 rounded-lg p-6 border border-gray-800">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-600/20">
+                    <i class="fas fa-hdd text-purple-400 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-2xl font-bold text-white">{{ (files|sum(attribute='file_size'))|filesize }}</p>
+                    <p class="text-gray-400">總儲存大小</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Files List -->
+    {% if files %}
+    <div class="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-800">
+            <h2 class="text-lg font-semibold text-white">檔案清單</h2>
+        </div>
+
+        <div class="divide-y divide-gray-800">
+            {% for file in files %}
+            <div class="p-6 file-card hover:bg-gray-800/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4 min-w-0 flex-1">
+                        <!-- File Icon -->
+                        <div class="flex-shrink-0">
+                            {% set ext = file.original_filename.split('.')[-1].lower() %}
+                            {% if ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                <i class="fas fa-image text-green-400 text-2xl"></i>
+                            {% elif ext in ['pdf'] %}
+                                <i class="fas fa-file-pdf text-red-400 text-2xl"></i>
+                            {% elif ext in ['doc', 'docx'] %}
+                                <i class="fas fa-file-word text-blue-400 text-2xl"></i>
+                            {% elif ext in ['xls', 'xlsx'] %}
+                                <i class="fas fa-file-excel text-green-500 text-2xl"></i>
+                            {% elif ext in ['zip', 'rar'] %}
+                                <i class="fas fa-file-archive text-yellow-400 text-2xl"></i>
+                            {% elif ext in ['mp3', 'mp4', 'avi'] %}
+                                <i class="fas fa-file-video text-purple-400 text-2xl"></i>
+                            {% else %}
+                                <i class="fas fa-file text-gray-400 text-2xl"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- File Info -->
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center space-x-3">
+                                <h3 class="text-white font-medium truncate">{{ file.original_filename }}</h3>
+                                <span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full">
+                                    {{ file.file_size|filesize }}
+                                </span>
+                            </div>
+                            <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
+                                <span>
+                                    <i class="fas fa-clock mr-1"></i>
+                                    {{ file.upload_time }}
+                                </span>
+                                <span>
+                                    <i class="fas fa-download mr-1"></i>
+                                    下載 {{ file.download_count }} 次
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-2">
+                        <!-- Share Link -->
+                        <div class="flex items-center space-x-2 bg-gray-800 rounded-lg p-2">
+                            <input type="text"
+                                   readonly
+                                   value="{{ request.url_root }}download/{{ file.download_id }}"
+                                   class="bg-transparent text-gray-300 text-sm w-64 focus:outline-none"
+                                   id="link-{{ file.id }}">
+                            <button onclick="copyToClipboard('link-{{ file.id }}')"
+                                    class="text-blue-400 hover:text-blue-300 p-1"
+                                    title="複製連結">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+
+                        <!-- Download Button -->
+                        <a href="{{ url_for('download', download_id=file.download_id) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors"
+                           title="下載檔案">
+                            <i class="fas fa-download"></i>
+                        </a>
+
+                        <!-- Delete Button -->
+                        <form method="POST" action="{{ url_for('delete_file', file_id=file.id) }}"
+                              class="inline"
+                              onsubmit="return confirm('確定要刪除此檔案嗎？')">
+                            <button type="submit"
+                                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors"
+                                    title="刪除檔案">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16">
+        <div class="mx-auto h-24 w-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
+            <i class="fas fa-folder-open text-gray-600 text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-medium text-white mb-2">還沒有上傳任何檔案</h3>
+        <p class="text-gray-400 mb-6">開始上傳您的第一個檔案吧！</p>
+        <a href="{{ url_for('upload') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center">
+            <i class="fas fa-upload mr-2"></i>
+            立即上傳
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    element.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+
+    // Show feedback
+    const button = element.nextElementSibling;
+    const originalIcon = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i>';
+    button.classList.add('text-green-400');
+
+    setTimeout(() => {
+        button.innerHTML = originalIcon;
+        button.classList.remove('text-green-400');
+    }, 2000);
+}
+</script>
+{% endblock %}
