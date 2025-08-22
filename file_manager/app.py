@@ -144,8 +144,16 @@ def upload():
         if file and allowed_file(file.filename):
             # 生成安全的檔案名
             original_filename = secure_filename(file.filename)
-            file_ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
-            filename = f"{uuid.uuid4().hex}.{file_ext}"
+
+            # 修復：正確分離檔名和副檔名
+            if '.' in original_filename:
+                name_part, file_ext = original_filename.rsplit('.', 1)
+                # 使用 UUID 生成唯一檔名，但保留原始檔名結構
+                filename = f"{uuid.uuid4().hex}_{name_part}.{file_ext.lower()}"
+            else:
+                # 如果沒有副檔名
+                filename = f"{uuid.uuid4().hex}_{original_filename}"
+
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
             # 儲存檔案

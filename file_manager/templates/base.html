@@ -70,7 +70,7 @@
         {% if messages %}
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
                 {% for message in messages %}
-                    <div class="bg-blue-600 text-white p-4 rounded-lg mb-4 flex items-center">
+                    <div class="flash-message bg-blue-600 text-white p-4 rounded-lg mb-4 flex items-center">
                         <i class="fas fa-info-circle mr-2"></i>
                         {{ message }}
                     </div>
@@ -95,13 +95,13 @@
     </footer>
 
     <script>
-        // 自動隱藏提示訊息
+        // 自動隱藏提示訊息 - 只針對有 flash-message 類別的元素
         setTimeout(() => {
-            const alerts = document.querySelectorAll('.bg-blue-600, .bg-red-600, .bg-green-600');
-            alerts.forEach(alert => {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 500);
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                message.style.transition = 'opacity 0.5s';
+                message.style.opacity = '0';
+                setTimeout(() => message.remove(), 500);
             });
         }, 3000);
     </script>
