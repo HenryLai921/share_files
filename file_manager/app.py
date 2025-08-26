@@ -13,7 +13,10 @@ app.secret_key = 'your-secret-key-change-this'  # 請更改此密鑰
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB限制
 
+# 使用字典來追蹤登入中的使用者 {user_id: {'username': 'name', 'login_time': 'time'}}
+active_sessions = {}
 # 確保上傳目錄存在
+
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('instance', exist_ok=True)
 
@@ -99,11 +102,21 @@ def login():
             if user and check_password_hash(user['password_hash'], password):
                 session['user_id'] = user['id']
                 session['username'] = user['username']
+                session['role'] = user['role']  # <-- 新增：儲存角色
+
+                # --- 新增：記錄登入狀態 ---
+                active_sessions[user['id']] = {
+                    'username': user['username'],
+                    'login_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                # --- 新增結束 ---
+
                 return redirect(url_for('dashboard'))
             else:
                 flash('帳號或密碼錯誤')
 
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -116,27 +129,36 @@ def register():
             return redirect(url_for('register'))
 
         with get_db() as conn:
+            # --- ↓↓↓ 這是最重要的檢查區塊 ↓↓↓ ---
             # 檢查使用者名稱是否已存在
             user = conn.execute(
                 'SELECT id FROM users WHERE username = ?', (username,)
             ).fetchone()
 
+            # 如果 user 不是 None，表示已存在，就顯示提示並返回
             if user:
                 flash('此帳號名稱已被註冊，請更換一個')
                 return redirect(url_for('register'))
+            # --- ↑↑↑ 檢查區塊結束 ↑↑↑ ---
 
-            # 新增使用者到資料庫
+            # 只有在帳號不存在時，才會執行以下新增操作
             conn.execute(
-                'INSERT INTO users (username, password_hash) VALUES (?, ?)',
-                (username, generate_password_hash(password))
+                'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+                (username, generate_password_hash(password), 'user')
             )
             flash('註冊成功！請使用新帳號登入')
             return redirect(url_for('login'))
 
     return render_template('register.html')
 
+
 @app.route('/logout')
 def logout():
+    # --- 新增：移除登入狀態 ---
+    if 'user_id' in session and session['user_id'] in active_sessions:
+        del active_sessions[session['user_id']]
+    # --- 新增結束 ---
+
     session.clear()
     return redirect(url_for('login'))
 
@@ -152,7 +174,10 @@ def dashboard():
             ORDER BY upload_time DESC
         ''', (session['user_id'],)).fetchall()
 
-    return render_template('dashboard.html', files=files)
+    # --- 修改這段 ---
+    # 將 active_sessions 傳遞給模板
+    return render_template('dashboard.html', files=files, active_sessions=active_sessions)
+    # --- 修改結束 ---
 
 
 @app.route('/upload', methods=['GET', 'POST'])
@@ -284,7 +309,28 @@ def format_file_size(bytes):
 
 app.jinja_env.filters['filesize'] = format_file_size
 
+
+def migrate_db():
+    """檢查並更新資料庫結構，新增 role 欄位並設定 admin 角色"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        # 檢查 users 表格中是否已有 role 欄位
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [row['name'] for row in cursor.fetchall()]
+
+        if 'role' not in columns:
+            print("正在新增 'role' 欄位到 users 表格...")
+            # 新增 role 欄位，並給予預設值 'user'
+            cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+            print("'role' 欄位已新增。")
+
+        # 將 'admin' 使用者的角色設定為 'admin'
+        cursor.execute("UPDATE users SET role = 'admin' WHERE username = 'admin'")
+        conn.commit()
+        print("已將 'admin' 使用者設定為管理員。")
+
+
 if __name__ == '__main__':
     init_db()
+    migrate_db()  # 執行資料庫結構更新
     app.run(debug=True, host='0.0.0.0', port=5000)
-

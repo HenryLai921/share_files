@@ -56,6 +56,40 @@
         </div>
     </div>
 
+
+    {% if session.role == 'admin' %}
+    <div class="bg-gray-900 rounded-lg border border-gray-800 mt-6">
+        <div class="px-6 py-4 border-b border-gray-800">
+            <h2 class="text-lg font-semibold text-white">
+                <i class="fas fa-user-shield mr-2 text-amber-400"></i>管理員面板
+            </h2>
+        </div>
+        <div class="p-6">
+            <h3 class="text-white mb-4">目前線上使用者 ({{ active_sessions|length }})</h3>
+            {% if active_sessions %}
+            <ul class="divide-y divide-gray-800">
+                {% for user_id, user_info in active_sessions.items() %}
+                <li class="py-3 flex justify-between items-center">
+                    <div class="flex items-center">
+                        <i class="fas fa-user-circle text-gray-400 mr-3"></i>
+                        <span class="text-gray-300">{{ user_info.username }}</span>
+                        {% if user_info.username == 'admin' %}
+                        <span class="ml-2 text-xs bg-amber-600 text-white px-2 py-1 rounded-full">管理員</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-sm text-gray-500">登入時間：{{ user_info.login_time }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-gray-500">目前沒有使用者登入。</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+
+
     <!-- Files List -->
     {% if files %}
     <div class="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
