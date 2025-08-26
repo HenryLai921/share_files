@@ -172,9 +172,9 @@ def dashboard():
 
     with get_db() as conn:
         files = conn.execute('''
-            SELECT * FROM files WHERE uploaded_by = ? 
+            SELECT * FROM files 
             ORDER BY upload_time DESC
-        ''', (session['user_id'],)).fetchall()
+        ''').fetchall() # <--- 已修改
 
     # --- 修改這段 ---
     # 將 active_sessions 傳遞給模板
@@ -295,10 +295,13 @@ def delete_file(file_id):
         return redirect(url_for('login'))
 
     with get_db() as conn:
+        # --- 修改開始 ---
+        # 移除 uploaded_by 的檢查，只透過 id 尋找檔案
         file_record = conn.execute(
-            'SELECT * FROM files WHERE id = ? AND uploaded_by = ?',
-            (file_id, session['user_id'])
+            'SELECT * FROM files WHERE id = ?',
+            (file_id,)
         ).fetchone()
+        # --- 修改結束 ---
 
         if file_record:
             # 刪除實體檔案
