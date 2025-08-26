@@ -196,24 +196,54 @@ def upload():
             return redirect(request.url)
 
         if file and allowed_file(file.filename):
-            # 生成安全的檔案名
             original_filename = secure_filename(file.filename)
 
-            # 修復：正確分離檔名和副檔名
-            if '.' in original_filename:
-                name_part, file_ext = original_filename.rsplit('.', 1)
-                # 使用 UUID 生成唯一檔名，但保留原始檔名結構
-                filename = f"{uuid.uuid4().hex}_{name_part}.{file_ext.lower()}"
-            else:
-                # 如果沒有副檔名
-                filename = f"{uuid.uuid4().hex}_{original_filename}"
+            # --- 新增：處理檔名衝突邏輯 ---
+            final_filename = original_filename
+            with get_db() as conn:
+                # 檢查目前使用者的檔案中，是否存在同名檔案
+                existing_file = conn.execute(
+                    'SELECT id FROM files WHERE original_filename = ? AND uploaded_by = ?',
+                    (final_filename, session['user_id'])
+                ).fetchone()
 
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                # 如果存在，就開始尋找新的檔名
+                if existing_file:
+                    counter = 1
+                    # 分離檔名和副檔名
+                    name_part, extension = os.path.splitext(original_filename)
+
+                    while True:
+                        # 組合新檔名，例如 "report (1).pdf"
+                        new_name = f"{name_part} ({counter}){extension}"
+
+                        # 再次檢查新檔名是否也存在
+                        check_again = conn.execute(
+                            'SELECT id FROM files WHERE original_filename = ? AND uploaded_by = ?',
+                            (new_name, session['user_id'])
+                        ).fetchone()
+
+                        # 如果新檔名不存在，就使用它並跳出迴圈
+                        if not check_again:
+                            final_filename = new_name
+                            break
+
+                        # 如果新檔名也存在，計數器加一，繼續尋找下一個
+                        counter += 1
+
+                    # 提示使用者檔案已被重新命名
+                    flash(f'檔案 "{original_filename}" 已存在，已自動重新命名為 "{final_filename}"')
+
+            # --- 邏輯結束 ---
+
+            # 使用 UUID 生成唯一的內部儲存檔名
+            internal_filename = f"{uuid.uuid4().hex}_{final_filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], internal_filename)
 
             # 儲存檔案
             file.save(file_path)
             file_size = os.path.getsize(file_path)
-            mime_type = mimetypes.guess_type(original_filename)[0]
+            mime_type = mimetypes.guess_type(final_filename)[0]
             download_id = uuid.uuid4().hex
 
             # 儲存到資料庫
@@ -222,9 +252,13 @@ def upload():
                     INSERT INTO files 
                     (filename, original_filename, file_path, file_size, mime_type, download_id, uploaded_by)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (filename, original_filename, file_path, file_size, mime_type, download_id, session['user_id']))
+                ''', (internal_filename, final_filename, file_path, file_size, mime_type, download_id,
+                      session['user_id']))
 
-            flash(f'檔案 {original_filename} 上傳成功！')
+            # 如果沒有重新命名，就顯示原本的成功訊息
+            if final_filename == original_filename:
+                flash(f'檔案 {original_filename} 上傳成功！')
+
             return redirect(url_for('dashboard'))
         else:
             flash('不支援的檔案類型')
