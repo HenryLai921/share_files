@@ -36,6 +36,124 @@
             border-color: #3b82f6;
             background-color: rgba(59, 130, 246, 0.1);
         }
+
+        /* 智能檔名顯示樣式 */
+        .smart-filename {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            max-width: 300px;
+        }
+
+        .filename-main {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .filename-extension {
+            flex-shrink: 0;
+            color: #9ca3af;
+            font-weight: 500;
+            margin-left: 1px;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .smart-filename {
+                max-width: 180px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .smart-filename {
+                max-width: 150px;
+            }
+        }
+
+        /* 檔名提示框 */
+        .filename-tooltip {
+            position: relative;
+        }
+
+        .filename-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            white-space: normal;
+            word-break: break-all;
+            max-width: 400px;
+            border: 1px solid #374151;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+
+        /* 連結輸入框響應式調整 */
+        .link-input {
+            width: 250px;
+        }
+
+        @media (max-width: 1024px) {
+            .link-input {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .link-input {
+                width: 150px;
+            }
+        }
+
+        /* 行動裝置優化 */
+        @media (max-width: 640px) {
+            .file-actions {
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+            }
+
+            .link-container {
+                width: 100%;
+            }
+
+            .link-input {
+                width: 100%;
+            }
+
+            .action-buttons {
+                display: flex;
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">

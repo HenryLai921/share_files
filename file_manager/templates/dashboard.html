@@ -56,7 +56,6 @@
         </div>
     </div>
 
-
     {% if session.role == 'admin' %}
     <div class="bg-gray-900 rounded-lg border border-gray-800 mt-6">
         <div class="px-6 py-4 border-b border-gray-800">
@@ -88,8 +87,6 @@
     </div>
     {% endif %}
 
-
-
     <!-- Files List -->
     {% if files %}
     <div class="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
@@ -100,7 +97,7 @@
         <div class="divide-y divide-gray-800">
             {% for file in files %}
             <div class="p-6 file-card hover:bg-gray-800/50">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center space-x-4 min-w-0 flex-1">
                         <!-- File Icon -->
                         <div class="flex-shrink-0">
@@ -113,6 +110,8 @@
                                 <i class="fas fa-file-word text-blue-400 text-2xl"></i>
                             {% elif ext in ['xls', 'xlsx'] %}
                                 <i class="fas fa-file-excel text-green-500 text-2xl"></i>
+                            {% elif ext in ['ppt', 'pptx'] %}
+                                <i class="fas fa-file-powerpoint text-orange-400 text-2xl"></i>
                             {% elif ext in ['zip', 'rar'] %}
                                 <i class="fas fa-file-archive text-yellow-400 text-2xl"></i>
                             {% elif ext in ['mp3', 'mp4', 'avi'] %}
@@ -125,17 +124,25 @@
                         <!-- File Info -->
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center space-x-3">
-                                <h3 class="text-white font-medium truncate">{{ file.original_filename }}</h3>
-                                <span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full">
+                                <div class="filename-tooltip">
+                                    <div class="smart-filename cursor-help" data-filename="{{ file.original_filename }}">
+                                        <span class="filename-main text-white font-medium"></span>
+                                        <span class="filename-extension"></span>
+                                    </div>
+                                    <div class="tooltip-content">
+                                        {{ file.original_filename }}
+                                    </div>
+                                </div>
+                                <span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full flex-shrink-0">
                                     {{ file.file_size|filesize }}
                                 </span>
                             </div>
-                            <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
-                                <span>
+                            <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400 flex-wrap">
+                                <span class="flex items-center">
                                     <i class="fas fa-clock mr-1"></i>
                                     {{ file.upload_time }}
                                 </span>
-                                <span>
+                                <span class="flex items-center">
                                     <i class="fas fa-download mr-1"></i>
                                     下載 {{ file.download_count }} 次
                                 </span>
@@ -144,38 +151,40 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex items-center space-x-2">
+                    <div class="file-actions flex items-center space-x-2">
                         <!-- Share Link -->
-                        <div class="flex items-center space-x-2 bg-gray-800 rounded-lg p-2">
+                        <div class="link-container flex items-center space-x-2 bg-gray-800 rounded-lg p-2">
                             <input type="text"
                                    readonly
                                    value="{{ request.url_root }}download/{{ file.download_id }}"
-                                   class="bg-transparent text-gray-300 text-sm w-64 focus:outline-none"
+                                   class="bg-transparent text-gray-300 text-sm link-input focus:outline-none"
                                    id="link-{{ file.id }}">
                             <button onclick="copyToClipboard('link-{{ file.id }}')"
-                                    class="text-blue-400 hover:text-blue-300 p-1"
+                                    class="text-blue-400 hover:text-blue-300 p-1 flex-shrink-0"
                                     title="複製連結">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
 
-                        <!-- Download Button -->
-                        <a href="{{ url_for('download', download_id=file.download_id) }}"
-                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors"
-                           title="下載檔案">
-                            <i class="fas fa-download"></i>
-                        </a>
+                        <div class="action-buttons">
+                            <!-- Download Button -->
+                            <a href="{{ url_for('download', download_id=file.download_id) }}"
+                               class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors inline-flex items-center"
+                               title="下載檔案">
+                                <i class="fas fa-download"></i>
+                            </a>
 
-                        <!-- Delete Button -->
-                        <form method="POST" action="{{ url_for('delete_file', file_id=file.id) }}"
-                              class="inline"
-                              onsubmit="return confirm('確定要刪除此檔案嗎？')">
-                            <button type="submit"
-                                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors"
-                                    title="刪除檔案">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
+                            <!-- Delete Button -->
+                            <form method="POST" action="{{ url_for('delete_file', file_id=file.id) }}"
+                                  class="inline"
+                                  onsubmit="return confirm('確定要刪除此檔案嗎？')">
+                                <button type="submit"
+                                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors"
+                                        title="刪除檔案">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -200,6 +209,27 @@
 </div>
 
 <script>
+// 智能檔名處理函數
+function processSmartFilenames() {
+    document.querySelectorAll('.smart-filename').forEach(element => {
+        const fullFilename = element.dataset.filename;
+        const lastDotIndex = fullFilename.lastIndexOf('.');
+
+        if (lastDotIndex === -1) {
+            // 沒有副檔名
+            element.querySelector('.filename-main').textContent = fullFilename;
+            element.querySelector('.filename-extension').textContent = '';
+        } else {
+            // 有副檔名
+            const mainName = fullFilename.substring(0, lastDotIndex);
+            const extension = fullFilename.substring(lastDotIndex);
+
+            element.querySelector('.filename-main').textContent = mainName;
+            element.querySelector('.filename-extension').textContent = extension;
+        }
+    });
+}
+
 function copyToClipboard(elementId) {
     const element = document.getElementById(elementId);
     element.select();
@@ -217,5 +247,8 @@ function copyToClipboard(elementId) {
         button.classList.remove('text-green-400');
     }, 2000);
 }
+
+// 頁面載入時處理檔名
+document.addEventListener('DOMContentLoaded', processSmartFilenames);
 </script>
 {% endblock %}
