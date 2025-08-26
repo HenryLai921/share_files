@@ -1,3 +1,4 @@
+import unicodedata
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session, send_file, flash
 import os
 import sqlite3
@@ -12,6 +13,7 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this'  # 請更改此密鑰
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB限制
+app.config['MAX_FILENAME_LENGTH'] = 200  # 新增檔名長度限制
 
 # 使用字典來追蹤登入中的使用者 {user_id: {'username': 'name', 'login_time': 'time'}}
 active_sessions = {}
@@ -196,57 +198,50 @@ def upload():
             return redirect(request.url)
 
         if file and allowed_file(file.filename):
-            original_filename = secure_filename(file.filename)
 
-            # --- 新增：處理檔名衝突邏輯 ---
+            # --- 使用旗標變數，來取代複雜的 flash 判斷 ---
+            special_message_flashed = False
+
+            original_filename = unicodedata.normalize('NFC', file.filename)
+
+            if len(original_filename) > app.config['MAX_FILENAME_LENGTH']:
+                name_part, extension = os.path.splitext(original_filename)
+                name_part = name_part[:app.config['MAX_FILENAME_LENGTH'] - len(extension)]
+                original_filename = name_part + extension
+                flash(f'檔名過長，已自動截斷為: {original_filename}')
+                special_message_flashed = True  # 設定旗標
+
             final_filename = original_filename
             with get_db() as conn:
-                # 檢查目前使用者的檔案中，是否存在同名檔案
                 existing_file = conn.execute(
                     'SELECT id FROM files WHERE original_filename = ? AND uploaded_by = ?',
                     (final_filename, session['user_id'])
                 ).fetchone()
 
-                # 如果存在，就開始尋找新的檔名
                 if existing_file:
                     counter = 1
-                    # 分離檔名和副檔名
                     name_part, extension = os.path.splitext(original_filename)
-
                     while True:
-                        # 組合新檔名，例如 "report (1).pdf"
                         new_name = f"{name_part} ({counter}){extension}"
-
-                        # 再次檢查新檔名是否也存在
                         check_again = conn.execute(
                             'SELECT id FROM files WHERE original_filename = ? AND uploaded_by = ?',
                             (new_name, session['user_id'])
                         ).fetchone()
-
-                        # 如果新檔名不存在，就使用它並跳出迴圈
                         if not check_again:
                             final_filename = new_name
                             break
-
-                        # 如果新檔名也存在，計數器加一，繼續尋找下一個
                         counter += 1
-
-                    # 提示使用者檔案已被重新命名
                     flash(f'檔案 "{original_filename}" 已存在，已自動重新命名為 "{final_filename}"')
+                    special_message_flashed = True  # 設定旗標
 
-            # --- 邏輯結束 ---
-
-            # 使用 UUID 生成唯一的內部儲存檔名
             internal_filename = f"{uuid.uuid4().hex}_{final_filename}"
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], internal_filename)
 
-            # 儲存檔案
             file.save(file_path)
             file_size = os.path.getsize(file_path)
             mime_type = mimetypes.guess_type(final_filename)[0]
             download_id = uuid.uuid4().hex
 
-            # 儲存到資料庫
             with get_db() as conn:
                 conn.execute('''
                     INSERT INTO files 
@@ -255,8 +250,9 @@ def upload():
                 ''', (internal_filename, final_filename, file_path, file_size, mime_type, download_id,
                       session['user_id']))
 
-            # 如果沒有重新命名，就顯示原本的成功訊息
-            if final_filename == original_filename:
+            # --- 使用旗標變數來判斷 ---
+            # 如果沒有設定過任何特殊訊息，才顯示通用的成功訊息
+            if not special_message_flashed:
                 flash(f'檔案 {original_filename} 上傳成功！')
 
             return redirect(url_for('dashboard'))
