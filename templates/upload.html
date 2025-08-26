@@ -42,6 +42,8 @@
                     <div class="flex-1 min-w-0">
                         <p id="fileName" class="text-white font-medium truncate"></p>
                         <p id="fileSize" class="text-gray-400 text-sm"></p>
+                        <!-- 新增檔案大小狀態顯示 -->
+                        <p id="fileSizeStatus" class="text-sm mt-1"></p>
                     </div>
                     <button type="button" onclick="clearFile()" class="text-red-400 hover:text-red-300 p-2">
                         <i class="fas fa-times"></i>
@@ -71,9 +73,9 @@
     <div class="bg-gray-900 rounded-lg border border-gray-800 p-6">
         <h3 class="text-lg font-medium text-white mb-4">
             <i class="fas fa-info-circle mr-2"></i>
-            支援的檔案格式
+            支援的檔案格式與限制
         </h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
             <div class="space-y-2">
                 <div class="text-blue-400 font-medium">圖片</div>
                 <div class="text-gray-400">JPG, PNG, GIF</div>
@@ -91,10 +93,27 @@
                 <div class="text-gray-400">ZIP, RAR</div>
             </div>
         </div>
-        <div class="mt-4 p-4 bg-gray-800 rounded-lg">
-            <div class="flex items-center text-amber-400">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                <span class="font-medium">檔案大小限制：50MB</span>
+        <!-- 修改後的檔案限制說明 -->
+        <div class="space-y-3">
+            <div class="p-4 bg-amber-900/30 border border-amber-700 rounded-lg">
+                <div class="flex items-center text-amber-400 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span class="font-medium">檔案大小限制</span>
+                </div>
+                <ul class="text-sm text-amber-200 space-y-1 ml-6">
+                    <li>• 最小檔案大小：不能為 0 bytes（空檔案）</li>
+                    <li>• 最大檔案大小：50MB</li>
+                    <li>• 系統會自動檢查並拒絕不符合要求的檔案</li>
+                </ul>
+            </div>
+            <div class="p-4 bg-blue-900/30 border border-blue-700 rounded-lg">
+                <div class="flex items-center text-blue-400 mb-2">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    <span class="font-medium">安全保護</span>
+                </div>
+                <p class="text-sm text-blue-200 ml-6">
+                    系統會驗證檔案完整性，確保檔案可以正常使用
+                </p>
             </div>
         </div>
     </div>
@@ -109,6 +128,10 @@ const uploadBtn = document.getElementById('uploadBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressBar = document.getElementById('progressBar');
 const progressText = document.getElementById('progressText');
+
+// 檔案大小限制常數
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+const MIN_FILE_SIZE = 1; // 最小 1 byte
 
 // File type icons mapping
 const fileTypeIcons = {
@@ -130,6 +153,37 @@ const fileTypeIcons = {
     'avi': 'fas fa-file-video text-purple-400',
     'txt': 'fas fa-file-alt text-gray-400'
 };
+
+/**
+ * 驗證檔案大小
+ * @param {number} fileSize - 檔案大小（bytes）
+ * @returns {object} - {isValid: boolean, message: string, statusClass: string}
+ */
+function validateFileSize(fileSize) {
+    if (fileSize === 0) {
+        return {
+            isValid: false,
+            message: '❌ 檔案大小為 0 bytes，無法上傳空檔案',
+            statusClass: 'text-red-400'
+        };
+    }
+
+    if (fileSize > MAX_FILE_SIZE) {
+        const maxSizeMB = MAX_FILE_SIZE / (1024 * 1024);
+        const currentSizeMB = fileSize / (1024 * 1024);
+        return {
+            isValid: false,
+            message: `❌ 檔案過大 (${currentSizeMB.toFixed(1)}MB)，超過 ${maxSizeMB}MB 限制`,
+            statusClass: 'text-red-400'
+        };
+    }
+
+    return {
+        isValid: true,
+        message: '✅ 檔案大小符合要求',
+        statusClass: 'text-green-400'
+    };
+}
 
 // Drag and drop functionality
 dropZone.addEventListener('dragover', (e) => {
@@ -162,25 +216,51 @@ fileInput.addEventListener('change', (e) => {
 
 function handleFileSelect(file) {
     const fileName = file.name;
-    const fileSize = formatFileSize(file.size);
+    const fileSize = file.size;
+    const fileSizeFormatted = formatFileSize(fileSize);
     const fileExt = fileName.split('.').pop().toLowerCase();
+
+    // 驗證檔案大小
+    const sizeValidation = validateFileSize(fileSize);
 
     // Show file info
     document.getElementById('fileName').textContent = fileName;
-    document.getElementById('fileSize').textContent = fileSize;
+    document.getElementById('fileSize').textContent = fileSizeFormatted;
+
+    // 顯示檔案大小狀態
+    const fileSizeStatus = document.getElementById('fileSizeStatus');
+    fileSizeStatus.textContent = sizeValidation.message;
+    fileSizeStatus.className = `text-sm mt-1 ${sizeValidation.statusClass}`;
 
     // Set appropriate icon
     const iconClass = fileTypeIcons[fileExt] || 'fas fa-file text-gray-400';
     document.getElementById('fileIcon').className = iconClass + ' text-2xl';
 
     fileInfo.classList.remove('hidden');
-    uploadBtn.disabled = false;
+
+    // 根據檔案大小驗證結果決定是否可以上傳
+    uploadBtn.disabled = !sizeValidation.isValid;
+
+    // 更新上傳按鈕文字和樣式
+    const uploadText = document.getElementById('uploadText');
+    if (sizeValidation.isValid) {
+        uploadText.textContent = '上傳檔案';
+        uploadBtn.className = 'w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors';
+    } else {
+        uploadText.textContent = '檔案不符合要求，無法上傳';
+        uploadBtn.className = 'w-full bg-gray-600 cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors';
+    }
 }
 
 function clearFile() {
     fileInput.value = '';
     fileInfo.classList.add('hidden');
     uploadBtn.disabled = true;
+
+    // 重置上傳按鈕
+    const uploadText = document.getElementById('uploadText');
+    uploadText.textContent = '上傳檔案';
+    uploadBtn.className = 'w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors';
 }
 
 function formatFileSize(bytes) {
@@ -197,6 +277,15 @@ uploadForm.addEventListener('submit', (e) => {
 
     if (!fileInput.files[0]) {
         alert('請先選擇檔案');
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    // 再次驗證檔案大小（雙重保護）
+    const sizeValidation = validateFileSize(file.size);
+    if (!sizeValidation.isValid) {
+        alert(sizeValidation.message.replace(/[❌✅]/g, '').trim());
         return;
     }
 
@@ -231,7 +320,15 @@ uploadForm.addEventListener('submit', (e) => {
             if (response.ok) {
                 window.location.href = "{{ url_for('dashboard') }}";
             } else {
-                alert('上傳失敗，請重試');
+                // 處理伺服器回應的錯誤
+                response.text().then(text => {
+                    // 嘗試解析錯誤訊息
+                    if (text.includes('檔案大小')) {
+                        alert('檔案大小不符合要求，請檢查檔案大小是否在允許範圍內');
+                    } else {
+                        alert('上傳失敗，請重試');
+                    }
+                });
                 resetForm();
             }
         }, 1000);
@@ -248,6 +345,34 @@ function resetForm() {
     document.getElementById('uploadText').textContent = '上傳檔案';
     progressContainer.classList.add('hidden');
     progressBar.style.width = '0%';
+}
+
+/**
+ * 顯示檔案大小相關的警告訊息
+ */
+function showFileSizeWarning() {
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'bg-red-900/30 border border-red-700 rounded-lg p-4 mb-4';
+    warningDiv.innerHTML = `
+        <div class="flex items-center text-red-400 mb-2">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <span class="font-medium">檔案檢查失敗</span>
+        </div>
+        <p class="text-sm text-red-200 ml-6">
+            請確認您的檔案不是空檔案且大小不超過 50MB
+        </p>
+    `;
+
+    // 在表單前插入警告訊息
+    const uploadForm = document.getElementById('uploadForm').parentElement;
+    uploadForm.insertBefore(warningDiv, uploadForm.firstChild);
+
+    // 3秒後自動移除警告
+    setTimeout(() => {
+        if (warningDiv.parentElement) {
+            warningDiv.remove();
+        }
+    }, 5000);
 }
 </script>
 {% endblock %}

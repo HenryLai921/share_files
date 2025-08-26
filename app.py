@@ -76,6 +76,28 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def validate_file_size(file_size):
+    """
+    驗證檔案大小
+
+    Args:
+        file_size (int): 檔案大小（位元組）
+
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    if file_size == 0:
+        return False, "檔案大小不能為 0 bytes，請檢查檔案是否完整"
+
+    max_size = app.config['MAX_CONTENT_LENGTH']  # 50MB
+    if file_size > max_size:
+        max_size_mb = max_size / (1024 * 1024)
+        current_size_mb = file_size / (1024 * 1024)
+        return False, f"檔案大小超過限制，最大允許 {max_size_mb:.0f}MB，您的檔案為 {current_size_mb:.1f}MB"
+
+    return True, ""
+
+
 @app.before_request
 def before_request():
     # 初始化資料庫
@@ -174,7 +196,7 @@ def dashboard():
         files = conn.execute('''
             SELECT * FROM files 
             ORDER BY upload_time DESC
-        ''').fetchall() # <--- 已修改
+        ''').fetchall()  # <--- 已修改
 
     # --- 修改這段 ---
     # 將 active_sessions 傳遞給模板
@@ -198,6 +220,35 @@ def upload():
             return redirect(request.url)
 
         if file and allowed_file(file.filename):
+            # --- 新增：檔案大小驗證 ---
+            # 先將檔案儲存到臨時位置以獲取實際大小
+            temp_filename = f"temp_{uuid.uuid4().hex}"
+            temp_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+
+            try:
+                file.save(temp_path)
+                actual_file_size = os.path.getsize(temp_path)
+
+                # 驗證檔案大小
+                is_valid, error_message = validate_file_size(actual_file_size)
+                if not is_valid:
+                    # 刪除臨時檔案
+                    os.remove(temp_path)
+                    flash(error_message)
+                    return redirect(request.url)
+
+                # 如果檔案大小有效，繼續處理
+                # 重新讀取檔案內容（因為 file stream 已經被消耗）
+                with open(temp_path, 'rb') as temp_file:
+                    file_content = temp_file.read()
+
+            except Exception as e:
+                # 清理臨時檔案
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                flash(f'檔案處理錯誤：{str(e)}')
+                return redirect(request.url)
+            # --- 檔案大小驗證結束 ---
 
             # --- 使用旗標變數，來取代複雜的 flash 判斷 ---
             special_message_flashed = False
@@ -235,10 +286,24 @@ def upload():
                     special_message_flashed = True  # 設定旗標
 
             internal_filename = f"{uuid.uuid4().hex}_{final_filename}"
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], internal_filename)
+            final_file_path = os.path.join(app.config['UPLOAD_FOLDER'], internal_filename)
 
-            file.save(file_path)
-            file_size = os.path.getsize(file_path)
+            # --- 修改：將臨時檔案移動到最終位置 ---
+            try:
+                os.rename(temp_path, final_file_path)
+                # 或者寫入檔案內容（如果使用 file_content）
+                # with open(final_file_path, 'wb') as f:
+                #     f.write(file_content)
+            except Exception as e:
+                # 清理檔案
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                if os.path.exists(final_file_path):
+                    os.remove(final_file_path)
+                flash(f'檔案儲存錯誤：{str(e)}')
+                return redirect(request.url)
+            # --- 修改結束 ---
+
             mime_type = mimetypes.guess_type(final_filename)[0]
             download_id = uuid.uuid4().hex
 
@@ -247,7 +312,7 @@ def upload():
                     INSERT INTO files 
                     (filename, original_filename, file_path, file_size, mime_type, download_id, uploaded_by)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (internal_filename, final_filename, file_path, file_size, mime_type, download_id,
+                ''', (internal_filename, final_filename, final_file_path, actual_file_size, mime_type, download_id,
                       session['user_id']))
 
             # --- 使用旗標變數來判斷 ---
