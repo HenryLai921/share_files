@@ -105,6 +105,35 @@ def login():
 
     return render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if not username or not password:
+            flash('帳號和密碼不能為空')
+            return redirect(url_for('register'))
+
+        with get_db() as conn:
+            # 檢查使用者名稱是否已存在
+            user = conn.execute(
+                'SELECT id FROM users WHERE username = ?', (username,)
+            ).fetchone()
+
+            if user:
+                flash('此帳號名稱已被註冊，請更換一個')
+                return redirect(url_for('register'))
+
+            # 新增使用者到資料庫
+            conn.execute(
+                'INSERT INTO users (username, password_hash) VALUES (?, ?)',
+                (username, generate_password_hash(password))
+            )
+            flash('註冊成功！請使用新帳號登入')
+            return redirect(url_for('login'))
+
+    return render_template('register.html')
 
 @app.route('/logout')
 def logout():
@@ -258,3 +287,4 @@ app.jinja_env.filters['filesize'] = format_file_size
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
+

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}登入 - 檔案管理系統{% endblock %}
+{% block title %}註冊新帳號 - 檔案管理系統{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center">
@@ -8,51 +8,50 @@
         <div class="bg-gray-900 rounded-xl shadow-2xl p-8 border border-gray-800">
             <div class="text-center mb-8">
                 <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-                    <i class="fas fa-lock text-white text-2xl"></i>
+                    <i class="fas fa-user-plus text-white text-2xl"></i>
                 </div>
-                <h2 class="text-3xl font-bold text-white">登入系統</h2>
-                <p class="text-gray-400 mt-2">輸入您的帳號密碼以繼續</p>
+                <h2 class="text-3xl font-bold text-white">建立新帳號</h2>
+                <p class="text-gray-400 mt-2">加入我們，開始管理您的檔案</p>
             </div>
 
             <form method="POST" class="space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">
-                        <i class="fas fa-user mr-2"></i>帳號
+                        <i class="fas fa-user mr-2"></i>設定帳號
                     </label>
                     <input type="text"
                            name="username"
                            required
                            class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                           placeholder="請輸入帳號"
+                           placeholder="請輸入您想要的帳號"
                            autocomplete="username">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">
-                        <i class="fas fa-lock mr-2"></i>密碼
+                        <i class="fas fa-lock mr-2"></i>設定密碼
                     </label>
                     <input type="password"
                            name="password"
                            required
                            class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                           placeholder="請輸入密碼"
-                           autocomplete="current-password">
+                           placeholder="請輸入您想要的密碼"
+                           autocomplete="new-password">
                 </div>
 
                 <button type="submit"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900">
-                    <i class="fas fa-sign-in-alt mr-2"></i>
-                    登入
+                    <i class="fas fa-check-circle mr-2"></i>
+                    註冊
                 </button>
             </form>
 
             <div class="mt-6 text-center">
-                <a href="{{ url_for('register') }}" class="inline-block w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-user-plus mr-2"></i>
-                    註冊新帳號
+                <a href="{{ url_for('login') }}" class="text-sm text-blue-400 hover:text-blue-300">
+                    <i class="fas fa-arrow-left mr-1"></i>
+                    已經有帳號了？返回登入
                 </a>
             </div>
-
         </div>
     </div>
 </div>
