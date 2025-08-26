@@ -30,52 +30,125 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
     <style>
-        /* 玻璃擬態效果 */
-        .glass {
-            background: rgba(17, 25, 40, 0.75);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.125);
-            box-shadow:
-                0 8px 32px 0 rgba(31, 38, 135, 0.37),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        /* 背景圖片設定 */
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            background-image: url('{{ url_for('static', filename='images/background.webp') }}');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            filter: blur(2px) brightness(0.3) saturate(1.2);
+            transition: all 0.5s ease;
         }
 
-        /* 移除漸變動畫樣式，改為粒子專用 */
+        /* 背景圖片備用方案 */
+        .background-fallback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            background: linear-gradient(135deg,
+                rgba(15, 23, 42, 0.9) 0%,
+                rgba(30, 41, 59, 0.8) 25%,
+                rgba(15, 23, 42, 0.9) 50%,
+                rgba(59, 130, 246, 0.1) 75%,
+                rgba(15, 23, 42, 0.9) 100%);
+            display: none;
+        }
+
+        /* 增強的覆蓋層 */
+        .enhanced-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(
+                135deg,
+                rgba(15, 23, 42, 0.7) 0%,
+                rgba(30, 41, 59, 0.6) 25%,
+                rgba(59, 130, 246, 0.2) 50%,
+                rgba(147, 51, 234, 0.2) 75%,
+                rgba(15, 23, 42, 0.8) 100%
+            );
+            animation: gradientShift 20s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% {
+                background: linear-gradient(135deg,
+                    rgba(15, 23, 42, 0.7) 0%,
+                    rgba(30, 41, 59, 0.6) 25%,
+                    rgba(59, 130, 246, 0.2) 50%,
+                    rgba(147, 51, 234, 0.2) 75%,
+                    rgba(15, 23, 42, 0.8) 100%);
+            }
+            50% {
+                background: linear-gradient(135deg,
+                    rgba(15, 23, 42, 0.8) 0%,
+                    rgba(59, 130, 246, 0.3) 25%,
+                    rgba(147, 51, 234, 0.3) 50%,
+                    rgba(30, 41, 59, 0.6) 75%,
+                    rgba(15, 23, 42, 0.7) 100%);
+            }
+        }
+
+        /* 玻璃擬態效果增強 */
+        .glass {
+            background: rgba(17, 25, 40, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow:
+                0 12px 40px 0 rgba(0, 0, 0, 0.5),
+                0 8px 32px 0 rgba(31, 38, 135, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        /* 粒子效果優化 */
         .particle-overlay {
-            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                       radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
-                       radial-gradient(circle at 40% 80%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
-            animation: particleGlow 8s ease-in-out infinite;
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
+                       radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                       radial-gradient(circle at 40% 80%, rgba(120, 219, 226, 0.15) 0%, transparent 50%);
+            animation: particleGlow 10s ease-in-out infinite;
         }
 
         @keyframes particleGlow {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.7; }
         }
 
         /* 浮動動畫 */
         .floating {
-            animation: floating 3s ease-in-out infinite;
+            animation: floating 4s ease-in-out infinite;
         }
 
         @keyframes floating {
             0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-25px); }
         }
 
-        /* 脈衝光暈效果 */
+        /* 脈衝光暈效果增強 */
         .pulse-glow {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-            animation: pulseGlow 2s infinite;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+            animation: pulseGlow 2.5s infinite;
         }
 
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+            0%, 100% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 35px rgba(59, 130, 246, 0.7); }
         }
 
-        /* 粒子效果優化 */
+        /* Three.js 容器優化 */
         #three-background {
             position: fixed;
             top: 0;
@@ -84,6 +157,7 @@
             height: 100%;
             z-index: -2;
             overflow: hidden;
+            opacity: 0.8;
         }
 
         #three-background canvas {
@@ -110,28 +184,70 @@
             background: rgba(59, 130, 246, 0.8);
         }
 
-        /* 輸入框聚焦效果 */
+        /* 輸入框聚焦效果增強 */
         .input-glow:focus {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 20px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 0 25px rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
         }
 
-        /* 功能卡片懸停效果 */
+        /* 功能卡片懸停效果增強 */
         .feature-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .feature-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .background-image {
+                background-attachment: scroll;
+            }
+
+            .glass {
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+            }
+        }
+
+        /* 背景圖片載入狀態 */
+        .background-loading {
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .background-loaded {
+            opacity: 1;
+        }
+
+        /* 模糊效果變化 */
+        .background-interactive {
+            filter: blur(2px) brightness(0.3) saturate(1.2);
+            transition: filter 0.5s ease;
+        }
+
+        .background-interactive:hover {
+            filter: blur(1px) brightness(0.4) saturate(1.3);
         }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen overflow-x-hidden">
+    <!-- 背景圖片 -->
+    <div id="background-image" class="background-image background-loading background-interactive"></div>
+
+    <!-- 背景圖片備用方案 -->
+    <div id="background-fallback" class="background-fallback"></div>
+
     <!-- Three.js 背景 -->
     <div id="three-background"></div>
 
-    <!-- 暗色覆蓋層 -->
-    <div class="fixed inset-0 bg-gradient-to-br from-gray-950/90 via-blue-950/30 to-purple-950/40 z-0"></div>
+    <!-- 增強的覆蓋層 -->
+    <div class="enhanced-overlay"></div>
+
+    <!-- 粒子效果覆蓋層 -->
+    <div class="particle-overlay fixed inset-0 z-0"></div>
 
     <!-- 主要內容 -->
     <div class="relative z-10 min-h-screen flex items-center justify-center p-4">
@@ -142,11 +258,11 @@
                 <div class="hidden lg:block space-y-8" id="features-section">
                     <!-- 主標題 -->
                     <div class="text-center lg:text-left mb-12">
-                        <h1 class="text-5xl font-bold text-white mb-4 leading-tight">
+                        <h1 class="text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
                             <i class="fas fa-cloud-upload-alt text-blue-400 mr-4"></i>
                             檔案管理系統
                         </h1>
-                        <p class="text-xl text-gray-300 leading-relaxed">
+                        <p class="text-xl text-gray-300 leading-relaxed drop-shadow-md">
                             現代化的檔案上傳與管理平台<br>
                             <span class="text-blue-400">安全 • 簡潔 • 高效</span>
                         </p>
@@ -262,13 +378,24 @@
                                     <i class="fas fa-user-shield text-white text-4xl"></i>
                                 </div>
                             </div>
-                            <h2 class="text-3xl font-bold text-white mb-2">歡迎回來</h2>
-                            <p class="text-gray-300">登入您的檔案管理帳戶</p>
+                            <h2 class="text-3xl font-bold text-white mb-2 drop-shadow-lg">歡迎回來</h2>
+                            <p class="text-gray-300 drop-shadow-md">登入您的檔案管理帳戶</p>
                         </div>
 
                         <!-- Flash 訊息區域 -->
                         <div id="flash-messages" class="mb-6">
-                            <!-- Flash 訊息會動態插入這裡 -->
+                            {% with messages = get_flashed_messages() %}
+                                {% if messages %}
+                                    {% for message in messages %}
+                                        <div class="bg-red-600 text-white p-4 rounded-xl mb-4 border border-red-500">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                <span>{{ message }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endwith %}
                         </div>
 
                         <!-- 登入表單 -->
@@ -347,6 +474,30 @@
     </div>
 
     <script>
+        // 背景圖片載入處理
+        function initializeBackground() {
+            const backgroundImage = document.getElementById('background-image');
+            const backgroundFallback = document.getElementById('background-fallback');
+
+            // 檢查背景圖片是否成功載入
+            const testImage = new Image();
+            testImage.onload = function() {
+                // 圖片載入成功
+                backgroundImage.classList.add('background-loaded');
+                console.log('背景圖片載入成功');
+            };
+
+            testImage.onerror = function() {
+                // 圖片載入失敗，顯示備用背景
+                backgroundImage.style.display = 'none';
+                backgroundFallback.style.display = 'block';
+                console.warn('背景圖片載入失敗，使用備用背景');
+            };
+
+            // 設定圖片 URL（這裡使用 Flask 的 url_for）
+            testImage.src = "{{ url_for('static', filename='images/background.webp') }}";
+        }
+
         // Three.js 增強粒子背景系統
         class ParticleBackground {
             constructor() {
@@ -358,7 +509,7 @@
                     powerPreference: "high-performance"
                 });
                 this.particles = [];
-                this.particleCount = 2000;
+                this.particleCount = 1500; // 減少粒子數量以配合背景圖片
                 this.mouse = { x: 0, y: 0 };
                 this.time = 0;
 
@@ -401,7 +552,7 @@
                         (Math.random() - 0.5) * 50
                     );
 
-                    // 顏色 - 藍紫色調
+                    // 顏色 - 調整透明度以配合背景圖片
                     const colorVariant = Math.random();
                     if (colorVariant < 0.3) {
                         // 藍色系
@@ -416,13 +567,13 @@
 
                     // 速度
                     velocities.push(
-                        (Math.random() - 0.5) * 0.02,
-                        (Math.random() - 0.5) * 0.02,
-                        (Math.random() - 0.5) * 0.02
+                        (Math.random() - 0.5) * 0.015,
+                        (Math.random() - 0.5) * 0.015,
+                        (Math.random() - 0.5) * 0.015
                     );
 
-                    // 大小
-                    sizes.push(Math.random() * 3 + 1);
+                    // 大小 - 稍微縮小以配合背景
+                    sizes.push(Math.random() * 2 + 0.5);
                 }
 
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -430,7 +581,7 @@
                 geometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
                 geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
 
-                // 自定義材質
+                // 自定義材質 - 調整透明度
                 const material = new THREE.ShaderMaterial({
                     uniforms: {
                         time: { value: 0 },
@@ -448,15 +599,15 @@
                             vec3 pos = position;
 
                             // 波動效果
-                            pos.z += sin(time + position.x * 0.1) * 2.0;
-                            pos.y += cos(time + position.z * 0.1) * 1.5;
+                            pos.z += sin(time + position.x * 0.1) * 1.5;
+                            pos.y += cos(time + position.z * 0.1) * 1.0;
 
                             // 滑鼠互動
                             vec2 mouseInfluence = (mouse - vec2(pos.x, pos.y)) * 0.0001;
-                            pos.xy += mouseInfluence * 100.0;
+                            pos.xy += mouseInfluence * 80.0;
 
                             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-                            gl_PointSize = size * (300.0 / -mvPosition.z);
+                            gl_PointSize = size * (250.0 / -mvPosition.z);
                             gl_Position = projectionMatrix * mvPosition;
                         }
                     `,
@@ -467,8 +618,8 @@
                             float distance = length(gl_PointCoord - vec2(0.5));
                             float alpha = 1.0 - smoothstep(0.0, 0.5, distance);
 
-                            // 發光效果
-                            alpha *= 0.8;
+                            // 降低發光效果以配合背景圖片
+                            alpha *= 0.6;
 
                             gl_FragColor = vec4(vColor, alpha);
                         }
@@ -483,12 +634,12 @@
             }
 
             createConnections() {
-                // 粒子連接線
+                // 粒子連接線 - 調整透明度
                 const connectionGeometry = new THREE.BufferGeometry();
                 const connectionMaterial = new THREE.LineBasicMaterial({
                     color: 0x3b82f6,
                     transparent: true,
-                    opacity: 0.1,
+                    opacity: 0.08, // 降低連接線透明度
                     blending: THREE.AdditiveBlending
                 });
 
@@ -499,10 +650,10 @@
             updateConnections() {
                 const positions = this.particleSystem.geometry.attributes.position.array;
                 const connectionPositions = [];
-                const maxDistance = 8;
+                const maxDistance = 6; // 減少連接距離
 
                 for(let i = 0; i < positions.length; i += 3) {
-                    for(let j = i + 3; j < Math.min(i + 300, positions.length); j += 3) {
+                    for(let j = i + 3; j < Math.min(i + 200, positions.length); j += 3) {
                         const dx = positions[i] - positions[j];
                         const dy = positions[i + 1] - positions[j + 1];
                         const dz = positions[i + 2] - positions[j + 2];
@@ -531,9 +682,9 @@
                     // 平滑移動
                     anime({
                         targets: this.mouse,
-                        x: mouseX * 10,
-                        y: mouseY * 10,
-                        duration: 1000,
+                        x: mouseX * 8,
+                        y: mouseY * 8,
+                        duration: 1200,
                         easing: 'easeOutQuad'
                     });
                 });
@@ -542,7 +693,7 @@
             animate() {
                 requestAnimationFrame(() => this.animate());
 
-                this.time += 0.01;
+                this.time += 0.008; // 稍微降低動畫速度
 
                 // 更新粒子位置
                 const positions = this.particleSystem.geometry.attributes.position.array;
@@ -567,12 +718,12 @@
                     this.particleSystem.material.uniforms.mouse.value.set(this.mouse.x, this.mouse.y);
                 }
 
-                // 整體旋轉
-                this.particleSystem.rotation.x += 0.0002;
-                this.particleSystem.rotation.y += 0.0005;
+                // 整體旋轉 - 稍微降低旋轉速度
+                this.particleSystem.rotation.x += 0.0001;
+                this.particleSystem.rotation.y += 0.0003;
 
-                // 更新連接線（每10幀更新一次以提升性能）
-                if(Math.floor(this.time * 60) % 10 === 0) {
+                // 更新連接線（每15幀更新一次以提升性能）
+                if(Math.floor(this.time * 60) % 15 === 0) {
                     this.updateConnections();
                 }
 
@@ -580,37 +731,43 @@
             }
         }
 
-        // 初始化 Three.js 背景
-        const particleBackground = new ParticleBackground();
-
-        // Anime.js 動畫
+        // 頁面載入完成後初始化
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始化背景圖片
+            initializeBackground();
+
+            // 初始化 Three.js 背景（稍微延遲以確保背景圖片先載入）
+            setTimeout(() => {
+                const particleBackground = new ParticleBackground();
+            }, 500);
+
+            // Anime.js 動畫
             // 頁面載入動畫
             anime({
                 targets: '#features-section > *',
-                translateY: [50, 0],
+                translateY: [60, 0],
                 opacity: [0, 1],
-                duration: 1000,
-                delay: anime.stagger(200),
+                duration: 1200,
+                delay: anime.stagger(250),
                 easing: 'easeOutQuart'
             });
 
             anime({
                 targets: '#login-form',
-                translateX: [100, 0],
+                translateX: [120, 0],
                 opacity: [0, 1],
-                duration: 1200,
-                delay: 300,
+                duration: 1400,
+                delay: 400,
                 easing: 'easeOutQuart'
             });
 
             // 頭像動畫
             anime({
                 targets: '#avatar-section .pulse-glow',
-                scale: [0.8, 1],
+                scale: [0.7, 1],
                 opacity: [0, 1],
-                duration: 800,
-                delay: 600,
+                duration: 1000,
+                delay: 800,
                 easing: 'easeOutBack'
             });
         });
@@ -631,16 +788,14 @@
             // 添加動畫效果
             anime({
                 targets: passwordIcon,
-                scale: [1, 1.2, 1],
-                duration: 300,
+                scale: [1, 1.3, 1],
+                duration: 400,
                 easing: 'easeInOutQuad'
             });
         });
 
         // 表單提交動畫
         document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
             const loginButton = document.getElementById('login-button');
             const loginText = document.getElementById('login-text');
 
@@ -651,16 +806,13 @@
             anime({
                 targets: loginButton,
                 scale: [1, 0.95, 1],
-                duration: 200,
+                duration: 300,
                 easing: 'easeInOutQuad'
             });
 
-            // 模擬登入處理
-            setTimeout(() => {
-                // 這裡應該是實際的表單提交邏輯
-                // 現在只是示範動畫效果
-                this.submit();
-            }, 1500);
+            // 背景圖片模糊效果變化
+            const backgroundImage = document.getElementById('background-image');
+            backgroundImage.style.filter = 'blur(3px) brightness(0.2) saturate(1.4)';
         });
 
         // 輸入框互動動畫
@@ -670,18 +822,26 @@
                 anime({
                     targets: this,
                     scale: [1, 1.02],
-                    duration: 200,
+                    duration: 300,
                     easing: 'easeOutQuad'
                 });
+
+                // 輕微調整背景模糊度
+                const backgroundImage = document.getElementById('background-image');
+                backgroundImage.style.filter = 'blur(1.5px) brightness(0.35) saturate(1.3)';
             });
 
             input.addEventListener('blur', function() {
                 anime({
                     targets: this,
                     scale: [1.02, 1],
-                    duration: 200,
+                    duration: 300,
                     easing: 'easeOutQuad'
                 });
+
+                // 恢復原始背景模糊度
+                const backgroundImage = document.getElementById('background-image');
+                backgroundImage.style.filter = 'blur(2px) brightness(0.3) saturate(1.2)';
             });
         });
 
@@ -692,65 +852,60 @@
                 anime({
                     targets: this.querySelector('i'),
                     rotate: [0, 360],
-                    duration: 600,
+                    duration: 800,
                     easing: 'easeInOutQuad'
                 });
             });
         });
 
-        // 模擬 Flash 訊息（用於演示）
-        function showFlashMessage(message, type = 'info') {
-            const flashContainer = document.getElementById('flash-messages');
-            const flashDiv = document.createElement('div');
-
-            const typeColors = {
-                'info': 'bg-blue-600 border-blue-500',
-                'error': 'bg-red-600 border-red-500',
-                'success': 'bg-green-600 border-green-500'
-            };
-
-            flashDiv.className = `${typeColors[type]} text-white p-4 rounded-xl mb-4 border-l-4 opacity-0`;
-            flashDiv.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-
-            flashContainer.appendChild(flashDiv);
-
-            // 進入動畫
-            anime({
-                targets: flashDiv,
-                opacity: [0, 1],
-                translateY: [-20, 0],
-                duration: 300,
-                easing: 'easeOutQuad'
-            });
-
-            // 自動隱藏
-            setTimeout(() => {
-                anime({
-                    targets: flashDiv,
-                    opacity: [1, 0],
-                    translateY: [0, -20],
-                    duration: 300,
-                    easing: 'easeInQuad',
-                    complete: () => flashDiv.remove()
-                });
-            }, 3000);
-        }
-
         // 頁面滾動視差效果
         window.addEventListener('scroll', () => {
             const scrolled = window.pageYOffset;
             const parallaxElements = document.querySelectorAll('.floating');
+            const backgroundImage = document.getElementById('background-image');
 
             parallaxElements.forEach(element => {
-                const speed = 0.5;
+                const speed = 0.3;
                 const yPos = -(scrolled * speed);
                 element.style.transform = `translateY(${yPos}px)`;
             });
+
+            // 背景圖片視差效果
+            if (backgroundImage) {
+                const bgSpeed = 0.1;
+                const bgYPos = scrolled * bgSpeed;
+                backgroundImage.style.transform = `translateY(${bgYPos}px)`;
+            }
+        });
+
+        // 背景圖片互動效果
+        document.addEventListener('mousemove', function(e) {
+            const backgroundImage = document.getElementById('background-image');
+            if (backgroundImage) {
+                const mouseX = e.clientX / window.innerWidth;
+                const mouseY = e.clientY / window.innerHeight;
+
+                // 根據滑鼠位置微調背景位置
+                const offsetX = (mouseX - 0.5) * 20;
+                const offsetY = (mouseY - 0.5) * 20;
+
+                backgroundImage.style.backgroundPosition = `calc(50% + ${offsetX}px) calc(50% + ${offsetY}px)`;
+            }
+        });
+
+        // 性能優化：減少不必要的重繪
+        let ticking = false;
+
+        function updateBackground() {
+            // 背景相關的更新邏輯
+            ticking = false;
+        }
+
+        document.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateBackground);
+                ticking = true;
+            }
         });
     </script>
 </body>
