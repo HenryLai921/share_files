@@ -1,59 +1,751 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 檔案管理系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            850: '#1f2937',
+                            950: '#0f172a'
+                        }
+                    },
+                    backdropBlur: {
+                        xs: '2px'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Anime.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
-{% block title %}登入 - 檔案管理系統{% endblock %}
+    <style>
+        /* 玻璃擬態效果 */
+        .glass {
+            background: rgba(17, 25, 40, 0.75);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.125);
+            box-shadow:
+                0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
 
-{% block content %}
-<div class="min-h-screen flex items-center justify-center">
-    <div class="max-w-md w-full">
-        <div class="bg-gray-900 rounded-xl shadow-2xl p-8 border border-gray-800">
-            <div class="text-center mb-8">
-                <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-                    <i class="fas fa-lock text-white text-2xl"></i>
+        /* 移除漸變動畫樣式，改為粒子專用 */
+        .particle-overlay {
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                       radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+                       radial-gradient(circle at 40% 80%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
+            animation: particleGlow 8s ease-in-out infinite;
+        }
+
+        @keyframes particleGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        /* 浮動動畫 */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* 脈衝光暈效果 */
+        .pulse-glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+        }
+
+        /* 粒子效果優化 */
+        #three-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+
+        #three-background canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* 自定義滾動條 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(17, 25, 40, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.6);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.8);
+        }
+
+        /* 輸入框聚焦效果 */
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        /* 功能卡片懸停效果 */
+        .feature-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen overflow-x-hidden">
+    <!-- Three.js 背景 -->
+    <div id="three-background"></div>
+
+    <!-- 暗色覆蓋層 -->
+    <div class="fixed inset-0 bg-gradient-to-br from-gray-950/90 via-blue-950/30 to-purple-950/40 z-0"></div>
+
+    <!-- 主要內容 -->
+    <div class="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+
+                <!-- 左側 - 系統特色展示 -->
+                <div class="hidden lg:block space-y-8" id="features-section">
+                    <!-- 主標題 -->
+                    <div class="text-center lg:text-left mb-12">
+                        <h1 class="text-5xl font-bold text-white mb-4 leading-tight">
+                            <i class="fas fa-cloud-upload-alt text-blue-400 mr-4"></i>
+                            檔案管理系統
+                        </h1>
+                        <p class="text-xl text-gray-300 leading-relaxed">
+                            現代化的檔案上傳與管理平台<br>
+                            <span class="text-blue-400">安全 • 簡潔 • 高效</span>
+                        </p>
+                    </div>
+
+                    <!-- 系統統計 -->
+                    <div class="grid grid-cols-2 gap-6 mb-12">
+                        <div class="glass rounded-2xl p-6 feature-card">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-shield-alt text-blue-400 text-xl"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">安全存儲</h3>
+                            <p class="text-gray-400 text-sm">密碼加密存儲，檔案安全保護</p>
+                        </div>
+
+                        <div class="glass rounded-2xl p-6 feature-card">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-green-600/20 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-upload text-green-400 text-xl"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">拖放上傳</h3>
+                            <p class="text-gray-400 text-sm">支援拖放上傳，操作更便捷</p>
+                        </div>
+                    </div>
+
+                    <!-- 支援檔案格式 -->
+                    <div class="glass rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                            <i class="fas fa-file-alt mr-3 text-purple-400"></i>
+                            支援檔案格式
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-image text-green-400"></i>
+                                <span class="text-gray-300">圖片檔案</span>
+                                <span class="text-xs text-gray-500">JPG, PNG, GIF</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-pdf text-red-400"></i>
+                                <span class="text-gray-300">文件檔案</span>
+                                <span class="text-xs text-gray-500">PDF, DOC, DOCX</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-excel text-green-500"></i>
+                                <span class="text-gray-300">試算表</span>
+                                <span class="text-xs text-gray-500">XLS, XLSX</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-archive text-yellow-400"></i>
+                                <span class="text-gray-300">壓縮檔</span>
+                                <span class="text-xs text-gray-500">ZIP, RAR</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-video text-purple-400"></i>
+                                <span class="text-gray-300">影音檔</span>
+                                <span class="text-xs text-gray-500">MP3, MP4, AVI</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-powerpoint text-orange-400"></i>
+                                <span class="text-gray-300">簡報檔</span>
+                                <span class="text-xs text-gray-500">PPT, PPTX</span>
+                            </div>
+                        </div>
+                        <div class="mt-6 p-4 bg-blue-900/20 rounded-lg border border-blue-800/30">
+                            <p class="text-sm text-blue-200">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                最大檔案限制：50MB | 支援檔案分享連結生成
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 技術架構 -->
+                    <div class="glass rounded-2xl p-8">
+                        <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                            <i class="fas fa-cogs mr-3 text-orange-400"></i>
+                            技術架構
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300">後端框架</span>
+                                <span class="text-blue-400 font-mono">Flask 2.3.3</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300">資料庫</span>
+                                <span class="text-green-400 font-mono">SQLite</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300">前端樣式</span>
+                                <span class="text-purple-400 font-mono">Tailwind CSS</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300">安全性</span>
+                                <span class="text-red-400 font-mono">Werkzeug</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h2 class="text-3xl font-bold text-white">登入系統</h2>
-                <p class="text-gray-400 mt-2">輸入您的帳號密碼以繼續</p>
+
+                <!-- 右側 - 登入表單 -->
+                <div class="w-full max-w-md mx-auto" id="login-form">
+                    <div class="glass rounded-3xl shadow-2xl p-10 border-2 border-white/10">
+                        <!-- 頭像區域 -->
+                        <div class="text-center mb-10" id="avatar-section">
+                            <div class="mx-auto h-20 w-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-6 pulse-glow floating">
+                                <i class="fas fa-user-shield text-white text-2xl"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-white mb-2">歡迎回來</h2>
+                            <p class="text-gray-300">登入您的檔案管理帳戶</p>
+                        </div>
+
+                        <!-- Flash 訊息區域 -->
+                        <div id="flash-messages" class="mb-6">
+                            <!-- Flash 訊息會動態插入這裡 -->
+                        </div>
+
+                        <!-- 登入表單 -->
+                        <form method="POST" class="space-y-6" id="loginForm">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-200 mb-2">
+                                    <i class="fas fa-user mr-2 text-blue-400"></i>使用者名稱
+                                </label>
+                                <input type="text"
+                                       name="username"
+                                       required
+                                       class="w-full px-4 py-4 glass rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 input-glow"
+                                       placeholder="請輸入您的帳號"
+                                       autocomplete="username">
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-200 mb-2">
+                                    <i class="fas fa-lock mr-2 text-blue-400"></i>密碼
+                                </label>
+                                <div class="relative">
+                                    <input type="password"
+                                           name="password"
+                                           required
+                                           id="password-input"
+                                           class="w-full px-4 py-4 pr-12 glass rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 input-glow"
+                                           placeholder="請輸入您的密碼"
+                                           autocomplete="current-password">
+                                    <button type="button"
+                                            id="toggle-password"
+                                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-400 transition-colors">
+                                        <i class="fas fa-eye" id="password-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit"
+                                    id="login-button"
+                                    class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 shadow-lg hover:shadow-blue-500/25">
+                                <i class="fas fa-sign-in-alt mr-2"></i>
+                                <span id="login-text">登入系統</span>
+                            </button>
+                        </form>
+
+                        <!-- 分隔線 -->
+                        <div class="my-8 flex items-center">
+                            <div class="flex-1 border-t border-gray-600"></div>
+                            <div class="px-4 text-gray-400 text-sm">或</div>
+                            <div class="flex-1 border-t border-gray-600"></div>
+                        </div>
+
+                        <!-- 註冊連結 -->
+                        <div class="text-center">
+                            <a href="/register"
+                               class="inline-flex items-center justify-center w-full bg-gray-800/50 hover:bg-gray-700/50 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] border border-gray-600 hover:border-gray-500">
+                                <i class="fas fa-user-plus mr-2"></i>
+                                建立新帳戶
+                            </a>
+                        </div>
+
+                        <!-- 系統資訊 -->
+                        <div class="mt-8 text-center">
+                            <div class="glass rounded-xl p-4">
+                                <p class="text-xs text-gray-400 leading-relaxed">
+                                    <i class="fas fa-shield-alt mr-1 text-green-400"></i>
+                                    安全登入 | 資料加密保護<br>
+                                    <i class="fas fa-server mr-1 text-blue-400"></i>
+                                    Flask 2.3.3 + SQLite 架構
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <form method="POST" class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        <i class="fas fa-user mr-2"></i>帳號
-                    </label>
-                    <input type="text"
-                           name="username"
-                           required
-                           class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                           placeholder="請輸入帳號"
-                           autocomplete="username">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        <i class="fas fa-lock mr-2"></i>密碼
-                    </label>
-                    <input type="password"
-                           name="password"
-                           required
-                           class="w-full px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                           placeholder="請輸入密碼"
-                           autocomplete="current-password">
-                </div>
-
-                <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900">
-                    <i class="fas fa-sign-in-alt mr-2"></i>
-                    登入
-                </button>
-            </form>
-
-            <div class="mt-6 text-center">
-                <a href="{{ url_for('register') }}" class="inline-block w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-user-plus mr-2"></i>
-                    註冊新帳號
-                </a>
-            </div>
-
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        // Three.js 增強粒子背景系統
+        class ParticleBackground {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({
+                    alpha: true,
+                    antialias: true,
+                    powerPreference: "high-performance"
+                });
+                this.particles = [];
+                this.particleCount = 2000;
+                this.mouse = { x: 0, y: 0 };
+                this.time = 0;
+
+                this.init();
+                this.createParticleSystem();
+                this.createConnections();
+                this.setupMouseInteraction();
+                this.animate();
+            }
+
+            init() {
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x000000, 0);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                document.getElementById('three-background').appendChild(this.renderer.domElement);
+
+                this.camera.position.z = 15;
+
+                // 響應式處理
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+
+            createParticleSystem() {
+                // 主要粒子系統
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                const colors = [];
+                const velocities = [];
+                const sizes = [];
+
+                for(let i = 0; i < this.particleCount; i++) {
+                    // 位置
+                    vertices.push(
+                        (Math.random() - 0.5) * 50,
+                        (Math.random() - 0.5) * 50,
+                        (Math.random() - 0.5) * 50
+                    );
+
+                    // 顏色 - 藍紫色調
+                    const colorVariant = Math.random();
+                    if (colorVariant < 0.3) {
+                        // 藍色系
+                        colors.push(0.2, 0.6, 1.0);
+                    } else if (colorVariant < 0.6) {
+                        // 紫色系
+                        colors.push(0.8, 0.4, 1.0);
+                    } else {
+                        // 青色系
+                        colors.push(0.0, 0.8, 0.8);
+                    }
+
+                    // 速度
+                    velocities.push(
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02
+                    );
+
+                    // 大小
+                    sizes.push(Math.random() * 3 + 1);
+                }
+
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                geometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
+                geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+
+                // 自定義材質
+                const material = new THREE.ShaderMaterial({
+                    uniforms: {
+                        time: { value: 0 },
+                        mouse: { value: new THREE.Vector2(0, 0) }
+                    },
+                    vertexShader: `
+                        attribute float size;
+                        attribute vec3 velocity;
+                        varying vec3 vColor;
+                        uniform float time;
+                        uniform vec2 mouse;
+
+                        void main() {
+                            vColor = color;
+                            vec3 pos = position;
+
+                            // 波動效果
+                            pos.z += sin(time + position.x * 0.1) * 2.0;
+                            pos.y += cos(time + position.z * 0.1) * 1.5;
+
+                            // 滑鼠互動
+                            vec2 mouseInfluence = (mouse - vec2(pos.x, pos.y)) * 0.0001;
+                            pos.xy += mouseInfluence * 100.0;
+
+                            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                            gl_PointSize = size * (300.0 / -mvPosition.z);
+                            gl_Position = projectionMatrix * mvPosition;
+                        }
+                    `,
+                    fragmentShader: `
+                        varying vec3 vColor;
+
+                        void main() {
+                            float distance = length(gl_PointCoord - vec2(0.5));
+                            float alpha = 1.0 - smoothstep(0.0, 0.5, distance);
+
+                            // 發光效果
+                            alpha *= 0.8;
+
+                            gl_FragColor = vec4(vColor, alpha);
+                        }
+                    `,
+                    transparent: true,
+                    vertexColors: true,
+                    blending: THREE.AdditiveBlending
+                });
+
+                this.particleSystem = new THREE.Points(geometry, material);
+                this.scene.add(this.particleSystem);
+            }
+
+            createConnections() {
+                // 粒子連接線
+                const connectionGeometry = new THREE.BufferGeometry();
+                const connectionMaterial = new THREE.LineBasicMaterial({
+                    color: 0x3b82f6,
+                    transparent: true,
+                    opacity: 0.1,
+                    blending: THREE.AdditiveBlending
+                });
+
+                this.connectionLines = new THREE.LineSegments(connectionGeometry, connectionMaterial);
+                this.scene.add(this.connectionLines);
+            }
+
+            updateConnections() {
+                const positions = this.particleSystem.geometry.attributes.position.array;
+                const connectionPositions = [];
+                const maxDistance = 8;
+
+                for(let i = 0; i < positions.length; i += 3) {
+                    for(let j = i + 3; j < Math.min(i + 300, positions.length); j += 3) {
+                        const dx = positions[i] - positions[j];
+                        const dy = positions[i + 1] - positions[j + 1];
+                        const dz = positions[i + 2] - positions[j + 2];
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                        if(distance < maxDistance) {
+                            connectionPositions.push(
+                                positions[i], positions[i + 1], positions[i + 2],
+                                positions[j], positions[j + 1], positions[j + 2]
+                            );
+                        }
+                    }
+                }
+
+                this.connectionLines.geometry.setAttribute('position',
+                    new THREE.Float32BufferAttribute(connectionPositions, 3));
+            }
+
+            setupMouseInteraction() {
+                let mouseX = 0, mouseY = 0;
+
+                document.addEventListener('mousemove', (event) => {
+                    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                    // 平滑移動
+                    anime({
+                        targets: this.mouse,
+                        x: mouseX * 10,
+                        y: mouseY * 10,
+                        duration: 1000,
+                        easing: 'easeOutQuad'
+                    });
+                });
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                this.time += 0.01;
+
+                // 更新粒子位置
+                const positions = this.particleSystem.geometry.attributes.position.array;
+                const velocities = this.particleSystem.geometry.attributes.velocity.array;
+
+                for(let i = 0; i < positions.length; i += 3) {
+                    // 邊界檢查和反彈
+                    if(positions[i] > 25 || positions[i] < -25) velocities[i] *= -1;
+                    if(positions[i + 1] > 25 || positions[i + 1] < -25) velocities[i + 1] *= -1;
+                    if(positions[i + 2] > 25 || positions[i + 2] < -25) velocities[i + 2] *= -1;
+
+                    positions[i] += velocities[i];
+                    positions[i + 1] += velocities[i + 1];
+                    positions[i + 2] += velocities[i + 2];
+                }
+
+                this.particleSystem.geometry.attributes.position.needsUpdate = true;
+
+                // 更新shader uniforms
+                if(this.particleSystem.material.uniforms) {
+                    this.particleSystem.material.uniforms.time.value = this.time;
+                    this.particleSystem.material.uniforms.mouse.value.set(this.mouse.x, this.mouse.y);
+                }
+
+                // 整體旋轉
+                this.particleSystem.rotation.x += 0.0002;
+                this.particleSystem.rotation.y += 0.0005;
+
+                // 更新連接線（每10幀更新一次以提升性能）
+                if(Math.floor(this.time * 60) % 10 === 0) {
+                    this.updateConnections();
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // 初始化 Three.js 背景
+        const particleBackground = new ParticleBackground();
+
+        // Anime.js 動畫
+        document.addEventListener('DOMContentLoaded', function() {
+            // 頁面載入動畫
+            anime({
+                targets: '#features-section > *',
+                translateY: [50, 0],
+                opacity: [0, 1],
+                duration: 1000,
+                delay: anime.stagger(200),
+                easing: 'easeOutQuart'
+            });
+
+            anime({
+                targets: '#login-form',
+                translateX: [100, 0],
+                opacity: [0, 1],
+                duration: 1200,
+                delay: 300,
+                easing: 'easeOutQuart'
+            });
+
+            // 頭像動畫
+            anime({
+                targets: '#avatar-section .pulse-glow',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 800,
+                delay: 600,
+                easing: 'easeOutBack'
+            });
+        });
+
+        // 密碼顯示/隱藏功能
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password-input');
+            const passwordIcon = document.getElementById('password-icon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordIcon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                passwordIcon.className = 'fas fa-eye';
+            }
+
+            // 添加動畫效果
+            anime({
+                targets: passwordIcon,
+                scale: [1, 1.2, 1],
+                duration: 300,
+                easing: 'easeInOutQuad'
+            });
+        });
+
+        // 表單提交動畫
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const loginButton = document.getElementById('login-button');
+            const loginText = document.getElementById('login-text');
+
+            // 按鈕載入動畫
+            loginButton.disabled = true;
+            loginText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>登入中...';
+
+            anime({
+                targets: loginButton,
+                scale: [1, 0.95, 1],
+                duration: 200,
+                easing: 'easeInOutQuad'
+            });
+
+            // 模擬登入處理
+            setTimeout(() => {
+                // 這裡應該是實際的表單提交邏輯
+                // 現在只是示範動畫效果
+                this.submit();
+            }, 1500);
+        });
+
+        // 輸入框互動動畫
+        const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                anime({
+                    targets: this,
+                    scale: [1, 1.02],
+                    duration: 200,
+                    easing: 'easeOutQuad'
+                });
+            });
+
+            input.addEventListener('blur', function() {
+                anime({
+                    targets: this,
+                    scale: [1.02, 1],
+                    duration: 200,
+                    easing: 'easeOutQuad'
+                });
+            });
+        });
+
+        // 功能卡片懸停動畫
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                anime({
+                    targets: this.querySelector('i'),
+                    rotate: [0, 360],
+                    duration: 600,
+                    easing: 'easeInOutQuad'
+                });
+            });
+        });
+
+        // 模擬 Flash 訊息（用於演示）
+        function showFlashMessage(message, type = 'info') {
+            const flashContainer = document.getElementById('flash-messages');
+            const flashDiv = document.createElement('div');
+
+            const typeColors = {
+                'info': 'bg-blue-600 border-blue-500',
+                'error': 'bg-red-600 border-red-500',
+                'success': 'bg-green-600 border-green-500'
+            };
+
+            flashDiv.className = `${typeColors[type]} text-white p-4 rounded-xl mb-4 border-l-4 opacity-0`;
+            flashDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            flashContainer.appendChild(flashDiv);
+
+            // 進入動畫
+            anime({
+                targets: flashDiv,
+                opacity: [0, 1],
+                translateY: [-20, 0],
+                duration: 300,
+                easing: 'easeOutQuad'
+            });
+
+            // 自動隱藏
+            setTimeout(() => {
+                anime({
+                    targets: flashDiv,
+                    opacity: [1, 0],
+                    translateY: [0, -20],
+                    duration: 300,
+                    easing: 'easeInQuad',
+                    complete: () => flashDiv.remove()
+                });
+            }, 3000);
+        }
+
+        // 頁面滾動視差效果
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.floating');
+
+            parallaxElements.forEach(element => {
+                const speed = 0.5;
+                const yPos = -(scrolled * speed);
+                element.style.transform = `translateY(${yPos}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
