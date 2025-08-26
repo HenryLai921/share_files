@@ -226,3 +226,5 @@ file-management-system/
 3. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 建立 Pull Request
+
+可以用python腳本更改admin密碼(預設:admin/admin123)
